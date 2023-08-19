@@ -83,7 +83,7 @@ int main() {
     __enable_irq();
     config::configInit();
     //config::ledOn();
-    TIM1->DIER = TIM_DIER_UIE;
+    /*TIM1->DIER = TIM_DIER_UIE;
     TIM1->CNT = 0;
     TIM1->PSC = 64000; //72 МГц / 64 кГц = 1125 Гц
     TIM1->ARR = 1124; // 2 секунды
@@ -92,7 +92,7 @@ int main() {
     TIM1->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
     TIM1->CCER = TIM_CCER_CC1E;
     RCC->APB2ENR = RCC_APB2ENR_TIM1EN;
-    TIM1->CR1 = TIM_CR1_CEN;
+    TIM1->CR1 = TIM_CR1_CEN;*/
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
