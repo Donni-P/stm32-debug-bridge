@@ -78,9 +78,9 @@ int main() {
     TIM1->CCER = TIM_CCER_CC1E;
     RCC->APB2ENR = RCC_APB2ENR_TIM1EN;
     TIM1->CR1 = TIM_CR1_CEN;*/
-    config::ledOn();
     usb::init();
     __enable_irq();
+    config::ledOn();
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
