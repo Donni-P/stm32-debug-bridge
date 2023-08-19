@@ -45,6 +45,8 @@ using UartPinsType = gpio::Bulk<
 extern UartPinsType uartPins;
 constexpr uint32_t uartClkDiv = UART_CLK_DIV;
 
+extern uint16_t flashconfig[512];
+
 struct LineCodingControl : usb::cdcPayload::LineCoding {
     bool isChanged;
 };

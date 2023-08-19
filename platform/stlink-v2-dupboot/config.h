@@ -96,5 +96,6 @@ public:
     }
 private:
 };
+static inline void configInit(void){}
 
 } // namespace global

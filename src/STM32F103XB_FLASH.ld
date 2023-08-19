@@ -160,6 +160,11 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
+
+  .flashconfig 0x800fc00 (NOLOAD) : {
+      * ( .flashconfig )
+  }
+
   
 
   /* Remove information from the standard libraries */
@@ -179,4 +184,6 @@ SECTIONS
   .gpioe 0x40011800 (NOLOAD) : { *(.gpioe) }
   .gpiof 0x40011c00 (NOLOAD) : { *(.gpiof) }
   .gpiog 0x40012000 (NOLOAD) : { *(.gpiog) }
+  .afio 0x40010000 (NOLOAD) : { *(.afio) }
+  .flash 0x40022000 (NOLOAD) : { *(.flash) }
 }

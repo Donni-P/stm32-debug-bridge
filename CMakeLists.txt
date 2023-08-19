@@ -66,7 +66,11 @@ add_library(gpio STATIC
     src/gpio.cpp
 )
 
-target_link_libraries(firmware.elf PRIVATE gpio)
+add_library(flash STATIC
+    src/flash.cpp
+)
+
+target_link_libraries(firmware.elf PRIVATE gpio flash)
 
 add_custom_command(TARGET firmware.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -Obinary firmware.elf firmware.bin

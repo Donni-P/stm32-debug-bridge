@@ -10,36 +10,32 @@
 
 namespace gpio {
 
-extern GPIO_TypeDef gpioa[1];
-extern GPIO_TypeDef gpiob[1];
-extern GPIO_TypeDef gpioc[1];
-extern GPIO_TypeDef gpiod[1];
-extern GPIO_TypeDef gpioe[1];
-extern GPIO_TypeDef gpiof[1];
-extern GPIO_TypeDef gpiog[1];
+struct GpioRegs{
+    uint32_t CRL;
+    uint32_t CRH;
+    uint32_t IDR;
+    uint32_t ODR;
+    uint32_t BSRR;
+    uint32_t BRR;
+    uint32_t LCKR;
+};
+
+extern volatile GpioRegs gpioa[1];
+extern volatile GpioRegs gpiob[1];
+extern volatile GpioRegs gpioc[1];
+extern volatile GpioRegs gpiod[1];
+extern volatile GpioRegs gpioe[1];
+extern volatile GpioRegs gpiof[1];
+extern volatile GpioRegs gpiog[1];
 
 enum class Port {
-#ifdef GPIOA
     a,
-#endif
-#ifdef GPIOB
     b,
-#endif
-#ifdef GPIOC
     c,
-#endif
-#ifdef GPIOD
     d,
-#endif
-#ifdef GPIOE
     e,
-#endif
-#ifdef GPIOF
     f,
-#endif
-#ifdef GPIOG
     g,
-#endif
     end
 };
 
@@ -56,50 +52,36 @@ enum class OutputType {
 
 template <Port port, uint8_t... pins> class Bulk;
 
-template <Port port, uint8_t pin> class Pin {
-    static_assert(port < Port::end, "Port is not exist");
-    static_assert(pin < 16, "pin must be less 16");
+template <Port port, uint8_t pin>
+    requires (port < Port::end && pin < 16)
+class Pin {
 
   private:
     static uint32_t getClockMsk() {
         uint32_t result;
 
         switch (port) {
-#ifdef GPIOA
         case Port::a:
-            result = RCC_APB2ENR_IOPAEN_Msk;
+            result = 0x1<<(2+0);
             break;
-#endif
-#ifdef GPIOB
         case Port::b:
-            result = RCC_APB2ENR_IOPBEN_Msk;
+            result = 0x1<<(2+1);
             break;
-#endif
-#ifdef GPIOC
         case Port::c:
-            result = RCC_APB2ENR_IOPCEN_Msk;
+            result = 0x1<<(2+2);
             break;
-#endif
-#ifdef GPIOD
         case Port::d:
-            result = RCC_APB2ENR_IOPDEN_Msk;
+            result = 0x1<<(2+3);
             break;
-#endif
-#ifdef GPIOE
         case Port::e:
-            result = RCC_APB2ENR_IOPEEN_Msk;
+            result = 0x1<<(2+4);
             break;
-#endif
-#ifdef GPIOF
         case Port::f:
-            result = RCC_APB2ENR_IOPFEN_Msk;
+            result = 0x1<<(2+5);
             break;
-#endif
-#ifdef GPIOG
         case Port::g:
-            result = RCC_APB2ENR_IOPGEN_Msk;
+            result = 0x1<<(2+6);
             break;
-#endif
         }
         return result;
     }
@@ -114,44 +96,30 @@ template <Port port, uint8_t pin> class Pin {
     }
 
   public:
-    GPIO_TypeDef *getGpioPointer() const {
-        GPIO_TypeDef *p;
+    volatile GpioRegs *getGpioPointer() const {
+        volatile GpioRegs *p;
         switch (port) {
-#ifdef GPIOA
         case Port::a:
             p = gpioa;
             break;
-#endif
-#ifdef GPIOB
         case Port::b:
             p = gpiob;
             break;
-#endif
-#ifdef GPIOC
         case Port::c:
             p = gpioc;
             break;
-#endif
-#ifdef GPIOD
         case Port::d:
             p = gpiod;
             break;
-#endif
-#ifdef GPIOE
         case Port::e:
             p = gpioe;
             break;
-#endif
-#ifdef GPIOF
         case Port::f:
             p = gpiof;
             break;
-#endif
-#ifdef GPIOG
         case Port::g:
             p = gpiog;
             break;
-#endif
         }
         return p;
     }
@@ -162,7 +130,7 @@ template <Port port, uint8_t pin> class Pin {
         return makeWriteWordLow();
     }
     void configInput(InputType type) {
-        GPIO_TypeDef *p = getGpioPointer();
+        volatile GpioRegs *p = getGpioPointer();
         if (pin < 8) {
             auto t = p->CRL;
             t &= ~(0xfu << ((pin - 0) * 4));
@@ -177,7 +145,7 @@ template <Port port, uint8_t pin> class Pin {
         __DMB();
     }
     void configOutput(OutputType type, OutputSpeed speed) {
-        GPIO_TypeDef *p = getGpioPointer();
+        volatile GpioRegs *p = getGpioPointer();
         if (pin < 8) {
             auto t = p->CRL;
             t &= ~(0xfu << ((pin - 0) * 4));
@@ -258,7 +226,7 @@ template <Port port, uint8_t... pins> class Bulk {
     }
 
   public:
-    GPIO_TypeDef *getGpioPointer() {
+    volatile GpioRegs *getGpioPointer() {
         return std::get<0>(pins_).getGpioPointer();
     }
     template <typename... in>
@@ -292,6 +260,102 @@ template <Port port, uint8_t... pins> class Bulk {
     template <typename... Args>
         requires(sizeof...(Args) == sizeof...(pins))
     Bulk(Args... args):pins_(args...) {}
+};
+
+class Afio{
+public:
+    struct Regs{
+        uint32_t EVCR;
+        uint32_t MAPR;
+        uint32_t EXTICR1;
+        uint32_t EXTICR2;
+        uint32_t EXTICR3;
+        uint32_t EXTICR4;
+        uint32_t MAPR2;
+    };
+    volatile Regs * operator -> () {return data;}
+    struct EVCR{
+        static constexpr uint32_t evoeInd = 7;
+        static constexpr uint32_t evoeMsk = 0x1u << evoeInd;
+        static constexpr uint32_t portInd = 4;
+        static constexpr uint32_t portMsk = 0x7u << portInd;
+        static constexpr uint32_t pinInd = 0;
+        static constexpr uint32_t pinMsk = 0xfu << pinInd;
+    };
+    struct MAPR{
+        static constexpr uint32_t swjCfgInd = 24;
+        static constexpr uint32_t swjCfgMsk = 0x7u<<swjCfgInd;
+        static constexpr uint32_t swjCfgFull = 0x0u<<swjCfgInd;
+        static constexpr uint32_t swjCfgNoNjtrst = 0x1u<<swjCfgInd;
+        static constexpr uint32_t swjCfgSwdOnly = 0x2u<<swjCfgInd;
+        static constexpr uint32_t swjCfgNone = 0x4u<<swjCfgInd;
+        static constexpr uint32_t swjCfgNoEffect = 0x7u<<swjCfgInd;
+
+        static constexpr uint32_t adc2EtrgRegInd = 20;
+        static constexpr uint32_t adc2EtrgRegMsk = 1u << adc2EtrgRegInd;
+        static constexpr uint32_t adc2EtrgInjInd = 19;
+        static constexpr uint32_t adc2EtrgInjMsk = 1u << adc2EtrgRegInd;
+
+        static constexpr uint32_t adc1EtrgRegInd = 18;
+        static constexpr uint32_t adc1EtrgRegMsk = 1u << adc2EtrgRegInd;
+        static constexpr uint32_t adc1EtrgInjInd = 17;
+        static constexpr uint32_t adc1EtrgInjMsk = 1u << adc2EtrgRegInd;
+
+        static constexpr uint32_t tim5Ch4iRemapInd = 16;
+        static constexpr uint32_t tim5Ch4iRemapMsk = 1u << tim5Ch4iRemapInd;
+
+        static constexpr uint32_t pd01RemapInd = 15;
+        static constexpr uint32_t pd01RemapMsk = 1u << pd01RemapInd;
+
+        static constexpr uint32_t canRemapInd = 13;
+        static constexpr uint32_t canRemapMsk = 3u << canRemapInd;
+        static constexpr uint32_t canRemapA11A12 = 0u << canRemapInd;
+        static constexpr uint32_t canRemapB8B9 = 2u << canRemapInd;
+        static constexpr uint32_t canRemapD0D1 = 3u << canRemapInd;
+
+        static constexpr uint32_t tim4RemapInd = 12;
+        static constexpr uint32_t tim4RemapMsk = 1u << tim4RemapInd;
+
+        static constexpr uint32_t tim3RemapInd = 10;
+        static constexpr uint32_t tim3RemapMsk = 3u << tim3RemapInd;
+        static constexpr uint32_t tim3RemapNo = 0u << tim3RemapInd;
+        static constexpr uint32_t tim3RemapPartical = 2u << tim3RemapInd;
+        static constexpr uint32_t tim3RemapFull = 3u << tim3RemapInd;
+
+        static constexpr uint32_t tim2RemapInd = 8;
+        static constexpr uint32_t tim2RemapMsk = 3u << tim2RemapInd;
+        static constexpr uint32_t tim2RemapNo = 0u << tim2RemapInd;
+        static constexpr uint32_t tim2RemapPart1 = 1u << tim2RemapInd;
+        static constexpr uint32_t tim2RemapPart2 = 2u << tim2RemapInd;
+        static constexpr uint32_t tim2RemapFull = 3u << tim2RemapInd;
+
+        static constexpr uint32_t tim1RemapInd = 6;
+        static constexpr uint32_t tim1RemapMsk = 3u << tim1RemapInd;
+        static constexpr uint32_t tim1RemapNo = 0u << tim1RemapInd;
+        static constexpr uint32_t tim1RemapPartical = 1u << tim1RemapInd;
+        static constexpr uint32_t tim1RemapFull = 3u << tim1RemapInd;
+
+        static constexpr uint32_t usart3RemapInd = 4;
+        static constexpr uint32_t usart3RemapMsk = 3u << usart3RemapInd;
+        static constexpr uint32_t usart3RemapNo = 0u << usart3RemapInd;
+        static constexpr uint32_t usart3RemapPartical = 1u << usart3RemapInd;
+        static constexpr uint32_t usart3RemapFull = 3u << usart3RemapInd;
+
+        static constexpr uint32_t usart2RemapInd = 3;
+        static constexpr uint32_t usart2RemapMsk = 1u << usart2RemapInd;
+
+        static constexpr uint32_t usart1RemapInd = 2;
+        static constexpr uint32_t usart1RemapMsk = 1u << usart1RemapInd;
+
+        static constexpr uint32_t i2c1RemapInd = 1;
+        static constexpr uint32_t i2c1RemapMsk = 1u << i2c1RemapInd;
+
+        static constexpr uint32_t sp1RemapInd = 0;
+        static constexpr uint32_t sp1RemapMsk = 1u << sp1RemapInd;
+
+    };
+private:
+    static volatile Regs data[1];
 };
 
 } // namespace gpio

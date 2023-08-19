@@ -52,7 +52,17 @@ extern "C" void __terminate() {
 
 int main() {
     const static char prompt[] = "> ";
-    shell::Shell<config::CommandExecutor, prompt> sh;
+    shell::Shell<
+        config::CommandExecutor,
+        prompt,
+        60,
+        8,
+        shell::color::index::green,
+        false,
+        false,
+        false,
+        16
+    > sh;
     config::ClockInit();
     SystemCoreClockUpdate();
     PortsInit();
@@ -80,6 +90,7 @@ int main() {
     TIM1->CR1 = TIM_CR1_CEN;*/
     usb::init();
     __enable_irq();
+    config::configInit();
     config::ledOn();
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {

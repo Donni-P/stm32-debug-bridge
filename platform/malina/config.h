@@ -2,6 +2,7 @@
 
 #include <gpio.h>
 #include <static_map.h>
+#include <flash.h>
 
 namespace config{
 
@@ -9,6 +10,7 @@ struct PortPins{
     gpio::Pin<gpio::Port::b, 9> pwrOn;
     gpio::Pin<gpio::Port::b, 0> hostMode;
     gpio::Pin<gpio::Port::b, 1> edclLock;
+    gpio::Pin<gpio::Port::a, 15> fanEn;
     gpio::Pin<gpio::Port::a, 6> fanPwm;
     gpio::Pin<gpio::Port::a, 8> nRst;
     gpio::Pin<gpio::Port::b, 10> jtagTrst;
@@ -49,9 +51,7 @@ static inline void ClockInit(void) {
                 RCC_CFGR_ADCPRE_DIV6 | RCC_CFGR_PPRE2_DIV1 |
                 RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_SW_HSI;
 
-    FLASH->ACR =
-        (FLASH->ACR & ~(FLASH_ACR_HLFCYA_Msk | FLASH_ACR_LATENCY_Msk)) |
-        (FLASH_ACR_PRFTBE_Msk | FLASH_ACR_LATENCY_2);
+    flash::Flash::setLatency(2);
 
     while ((RCC->CR & RCC_CR_HSERDY_Msk) == 0)
         ;
@@ -63,7 +63,7 @@ static inline void ClockInit(void) {
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_PLL;
     while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_PLL)
         ;
-    RCC->APB2ENR = RCC_APB2ENR_USART1EN;
+    RCC->APB2ENR = RCC_APB2ENR_USART1EN | RCC_APB2ENR_AFIOEN;
     RCC->APB1ENR = RCC_APB1ENR_USBEN;
     RCC->AHBENR = RCC_AHBENR_FLITFEN | RCC_AHBENR_SRAMEN | RCC_AHBENR_DMA1EN;
     SystemCoreClockUpdate();
@@ -71,20 +71,25 @@ static inline void ClockInit(void) {
 
 static inline void PortsInit(void) {
     using namespace gpio;
-    portPins.pwrOn.clockOn();
+
     portPins.pwrOn.write(false);
+    portPins.hostMode.write(false);
+    portPins.edclLock.write(false);
+    portPins.fanPwm.write(true);
+    portPins.fanEn.write(true);
+    portPins.nRst.write(false);
+    Afio()->MAPR = Afio::MAPR::swjCfgSwdOnly;
+    portPins.pwrOn.clockOn();
     portPins.pwrOn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
     portPins.hostMode.clockOn();
-    portPins.hostMode.write(false);
     portPins.hostMode.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
     portPins.edclLock.clockOn();
-    portPins.edclLock.write(false);
     portPins.edclLock.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
     portPins.fanPwm.clockOn();
-    portPins.fanPwm.write(true);
     portPins.fanPwm.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+    portPins.fanEn.clockOn();
+    portPins.fanEn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
     portPins.nRst.clockOn();
-    portPins.nRst.write(false);
     portPins.nRst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
     portPins.jtagTrst.clockOn();
     portPins.jtagTrst.write(true);
@@ -105,7 +110,17 @@ public:
         power,
         host,
         elock,
-        reset
+        reset,
+        help,
+        save
+    };
+    struct flags{
+        static constexpr uint16_t fan    = 0x0001;
+        static constexpr uint16_t host   = 0x0002;
+        static constexpr uint16_t edcl   = 0x0004;
+        static constexpr uint16_t pwr    = 0x0008;
+        static constexpr uint16_t rst    = 0x0010;
+        static constexpr uint16_t clear  = 0x8000;
     };
     class hasher{
         public:
@@ -120,6 +135,46 @@ public:
     void push (char c){
         global::shellRx.pushSafe(c);
     }
+    static void readPorts(void){
+        uint16_t pinCfg = global::flashconfig[0];
+        if ( (pinCfg&flags::clear) != 0 ){
+            portPins.pwrOn.write(false);
+            portPins.hostMode.write(false);
+            portPins.edclLock.write(false);
+            portPins.fanPwm.write(true);
+            portPins.fanEn.write(true);
+            portPins.nRst.write(false);
+        }else{
+            if ( pinCfg & flags::fan ){
+                portPins.fanPwm.write(true);
+                portPins.fanEn.write(true);
+            }else{
+                portPins.fanPwm.write(false);
+                portPins.fanEn.write(false);
+            }
+            if ( pinCfg & flags::host ){
+                portPins.hostMode.write(true);
+            }else{
+                portPins.hostMode.write(false);
+            }
+            if ( pinCfg & flags::edcl ){
+                portPins.edclLock.write(true);
+            }else{
+                portPins.edclLock.write(false);
+            }
+            if ( pinCfg & flags::pwr ){
+                portPins.pwrOn.write(true);
+                if ( pinCfg & flags::rst ){
+                    for (uint32_t i = 0xfffffu; i > 0; --i)
+                        __NOP();
+                    portPins.nRst.write(true);
+                }
+            }else{
+                portPins.pwrOn.write(false);
+                portPins.nRst.write(false);
+            }
+        }
+    }
     template<size_t L>
     void execute(size_t argc, const std::array<std::string_view, L> &argv){
         using std::string_view;
@@ -127,16 +182,27 @@ public:
         static constexpr string_view switchNo = "incorrect parameter. must be 0 or 1"sv;
         static constexpr string_view error = "unknown command : "sv;
         static constexpr string_view errorParam = "invalid param: "sv;
-        static constexpr string_view setTo = "set to: "sv;
-        static constexpr string_view list = "LIST FAN POWER HOST ELOCK RESET"sv;
-        static constexpr staticMap::StaticMap<string_view, CommandType, 6, 4, hasher> commands(
+        static constexpr string_view setTo = " set to: "sv;
+        static constexpr string_view list = "LIST FAN POWER HOST ELOCK RESET SAVE"sv;
+        static constexpr string_view help =
+            "FAN <0|1> - turn fan on/off\r\n"
+            "POWER <0|1> - turn power on/off\r\n"
+            "HOST <0|1> - turn force host mode on/off\r\n"
+            "ELOCK <0|1> - turn edcl on/off\r\n"
+            "RESET <0|1> - turn nRST on/off\r\n"
+            "SAVE - save control pins states\r\n"
+            ""sv;
+        static constexpr staticMap::StaticMap<string_view, CommandType, 9, 4, hasher> commands(
             {
                 {"LIST"sv,CommandType::list},
                 {"FAN"sv,CommandType::fan},
                 {"POWER"sv,CommandType::power},
                 {"HOST"sv,CommandType::host},
                 {"ELOCK"sv,CommandType::elock},
-                {"RESET"sv,CommandType::reset}
+                {"RESET"sv,CommandType::reset},
+                {"HELP"sv,CommandType::help},
+                {"help"sv,CommandType::help},
+                {"SAVE"sv,CommandType::save}
             }
         );
         CommandType c;
@@ -173,11 +239,14 @@ public:
                         push(i);
                     break;
                 }
+                for (uint8_t i:argv[0])
+                    push(i);
                 for (uint8_t i:setTo)
                     push(i);
                 for (uint8_t i:argv[1])
                     push(i);
                 portPins.fanPwm.write(x);
+                portPins.fanEn.write(x);
             }
             break;
         case CommandType::power:
@@ -192,6 +261,8 @@ public:
                         push(i);
                     break;
                 }
+                for (uint8_t i:argv[0])
+                    push(i);
                 for (uint8_t i:setTo)
                     push(i);
                 for (uint8_t i:argv[1])
@@ -213,6 +284,8 @@ public:
                         push(i);
                     break;
                 }
+                for (uint8_t i:argv[0])
+                    push(i);
                 for (uint8_t i:setTo)
                     push(i);
                 for (uint8_t i:argv[1])
@@ -232,6 +305,8 @@ public:
                         push(i);
                     break;
                 }
+                for (uint8_t i:argv[0])
+                    push(i);
                 for (uint8_t i:setTo)
                     push(i);
                 for (uint8_t i:argv[1])
@@ -251,11 +326,34 @@ public:
                         push(i);
                     break;
                 }
+                for (uint8_t i:argv[0])
+                    push(i);
                 for (uint8_t i:setTo)
                     push(i);
                 for (uint8_t i:argv[1])
                     push(i);
                 portPins.nRst.write(x);
+            }
+            break;
+        case CommandType::help:
+            {
+                for (uint8_t i:help)
+                    push(i);
+            }
+            break;
+        case CommandType::save:
+            {
+                uint16_t pinCfg = 0;
+                pinCfg |= portPins.fanPwm.read()?flags::fan:0;
+                pinCfg |= portPins.hostMode.read()?flags::host:0;
+                pinCfg |= portPins.edclLock.read()?flags::edcl:0;
+                pinCfg |= portPins.pwrOn.read()?flags::pwr:0;
+                pinCfg |= portPins.nRst.read()?flags::rst:0;
+                if ( flash::Flash::unlock() ){
+                    flash::Flash::pageErase(global::flashconfig);
+                    flash::Flash::write(global::flashconfig,pinCfg);
+                    flash::Flash::lock();
+                }
             }
             break;
         }
@@ -264,5 +362,13 @@ public:
     }
 private:
 };
+
+static inline void configInit(void){
+    using namespace usb::cdcPayload;
+    LineCoding x = { 1000000, CharFormat::stopBit1, ParityType::none, DataBits::bits8 };
+    setLineCoding( &x );
+    applyLineCoding();
+    CommandExecutor::readPorts();
+}
 
 } // namespace global

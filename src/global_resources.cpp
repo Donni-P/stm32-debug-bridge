@@ -9,6 +9,7 @@ JtagRxType jtagRx;
 JtagTxType jtagTx;
 LineCodingControl uartLineCoding;
 UartPinsType uartPins;
+__attribute__ ((section(".flashconfig"))) uint16_t flashconfig[512];
 }
 
 namespace config {
