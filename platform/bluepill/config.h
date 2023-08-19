@@ -71,6 +71,7 @@ static inline void ClockInit(void) {
 
 static inline void PortsInit(void) {
    portPins.led.clockOn();
+   portPins.led.write(true);
    portPins.led.configOutput(gpio::OutputType::gen_pp, gpio::OutputSpeed::_2mhz);
 }
 
@@ -96,5 +97,6 @@ public:
     }
 private:
 };
+static inline void configInit(void){}
 
 } // namespace global

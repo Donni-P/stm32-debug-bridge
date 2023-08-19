@@ -179,7 +179,7 @@ SECTIONS
 
   .gpioa 0x40010800 (NOLOAD) : { *(.gpioa) }
   .gpiob 0x40010c00 (NOLOAD) : { *(.gpiob) }
-  .gpioc 0x40011100 (NOLOAD) : { *(.gpioc) }
+  .gpioc 0x40011000 (NOLOAD) : { *(.gpioc) }
   .gpiod 0x40011400 (NOLOAD) : { *(.gpiod) }
   .gpioe 0x40011800 (NOLOAD) : { *(.gpioe) }
   .gpiof 0x40011c00 (NOLOAD) : { *(.gpiof) }
