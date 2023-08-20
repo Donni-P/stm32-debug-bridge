@@ -144,6 +144,8 @@ int main() {
     return 0;
 }
 extern "C" void TIM1_UP_IRQHandler(){
-    config::ledOn();
+    if(gpio::gpioc)
+        config::ledOff();
+    else config::ledOn();
     //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
