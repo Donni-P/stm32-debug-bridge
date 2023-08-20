@@ -79,20 +79,20 @@ int main() {
         global::uartDmaRx->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MINC | DMA_CCR_PSIZE_1 |
                              DMA_CCR_CIRC | DMA_CCR_EN;
     }
+    NVIC_EnableIRQ(TIM1_UP_IRQn);
+    RCC->APB2ENR = RCC_APB2ENR_TIM1EN;
+    TIM1->DIER = TIM_DIER_UIE;
+    TIM1->PSC = 0xf9ff; //72 МГц / 64 кГц = 1125 Гц
+    TIM1->ARR = 0x464; // 1 секунда
+    TIM1->CCR1 = 0x258;
+    TIM1->RCR = 0x9; // 10 секунд
+    TIM1->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
+    TIM1->CCER = TIM_CCER_CC1E;
+    TIM1->CR1 = TIM_CR1_URS | TIM_CR1_CEN;
     usb::init();
     __enable_irq();
     config::configInit();
     //config::ledOn();
-    /*TIM1->DIER = TIM_DIER_UIE;
-    TIM1->CNT = 0;
-    TIM1->PSC = 64000; //72 МГц / 64 кГц = 1125 Гц
-    TIM1->ARR = 1124; // 2 секунды
-    TIM1->CCR1 = 600;
-    TIM1->RCR = 9; // 20 секунд
-    TIM1->CCMR1 = TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
-    TIM1->CCER = TIM_CCER_CC1E;
-    RCC->APB2ENR = RCC_APB2ENR_TIM1EN;
-    TIM1->CR1 = TIM_CR1_CEN;*/
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
@@ -145,6 +145,5 @@ int main() {
 }
 extern "C" void TIM1_UP_IRQHandler(){
     config::ledOn();
-    RCC->APB2ENR = 0;
-    TIM1->CR1 = 0;
+    //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
