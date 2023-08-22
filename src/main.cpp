@@ -81,7 +81,6 @@ int main() {
     }
     usb::init();
     __enable_irq();
-    NVIC_EnableIRQ(TIM1_UP_IRQn);
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_TIM1EN_Msk) | RCC_APB2ENR_TIM1EN;
     TIM1->DIER = (TIM1->DIER & ~TIM_DIER_UIE_Msk) | TIM_DIER_UIE;
     TIM1->PSC = 0xf9ff; //72 МГц / 64 кГц = 1125 Гц
@@ -89,8 +88,10 @@ int main() {
     TIM1->CCR1 = 0x258;
     TIM1->RCR = 0x9; // 10 секунд
     TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
-    TIM1->CCER = (TIM1->CCER & ~TIM_CCER_CC1E_Msk) | TIM_CCER_CC1E;
+    TIM1->CCER = (TIM1->CCER & ~TIM_CCER_CC1E_Msk) | TIM_CCER_CC1E | TIM_CCER_CC1NE;
     TIM1->CR1 = (TIM1->CR1 & ~TIM_CR1_CEN_Msk) | TIM_CR1_URS | TIM_CR1_CEN;
+    TIM1->EGR = (TIM1->EGR & ~TIM_EGR_UG_Msk) | TIM_EGR_UG;
+    NVIC_EnableIRQ(TIM1_UP_IRQn);
     config::configInit();
     //config::ledOn();
     while (1) {
@@ -144,8 +145,6 @@ int main() {
     return 0;
 }
 extern "C" void TIM1_UP_IRQHandler(){
-    if(gpio::gpioc)
-        config::ledOff();
-    else config::ledOn();
+    config::portPins.led.write( ! config::portPins.led.read());
     //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
