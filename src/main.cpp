@@ -145,6 +145,9 @@ int main() {
     return 0;
 }
 extern "C" void TIM1_UP_IRQHandler(){
-    config::portPins.led.write( ! config::portPins.led.read());
+    if((TIM1->SR & TIM_SR_UIF_Msk) == 1){
+        config::portPins.led.write( ! config::portPins.led.read());
+        TIM1->SR = TIM1->SR & ~TIM_SR_UIF_Msk;
+    }
     //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
