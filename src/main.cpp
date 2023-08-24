@@ -8,7 +8,6 @@
 #include <usb.h>
 #include <shell.h>
 uint32_t results[6] = {0};
-int cnt = 0;
 static inline void PortsInit(void) {
 
     using namespace gpio;
@@ -104,14 +103,14 @@ int main() {
     TIM1->CCR1 = 0x15f4;//50% скважность - 5 секунд
     TIM1->CCR2 = 0x15f4;
     TIM1->RCR = 0x5; // 1 минута 
-    TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_CC2S_1;
+    TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1;
     TIM1->CR1 = TIM1->CR1 | TIM_CR1_URS | TIM_CR1_CEN;
-    TIM1->EGR = TIM_EGR_UG;
+    TIM1->EGR = TIM1->EGR | TIM_EGR_UG;
     NVIC_EnableIRQ(TIM1_UP_IRQn);
 
     DMA1_Channel2->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_MINC | 
                          DMA_CCR_DIR | DMA_CCR_EN;
-    DMA1_Channel3->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_PINC | DMA_CCR_EN;                     
+    DMA1_Channel3->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_MINC | DMA_CCR_EN;                     
     config::configInit();
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
