@@ -1,9 +1,8 @@
-#pragma once
-
 #include <gpio.h>
 #include <static_map.h>
 
 namespace config{
+
 
 struct PortPins{
     gpio::Pin<gpio::Port::c, 13> led;
