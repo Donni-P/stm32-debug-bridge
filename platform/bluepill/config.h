@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gpio.h>
 #include <static_map.h>
 
