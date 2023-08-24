@@ -101,7 +101,6 @@ int main() {
     TIM1->CCR1 = 0x15f4;//50% скважность - 5 секунд
     TIM1->RCR = 0x5; // 1 минута 
     TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
-    TIM1->CCER = (TIM1->CCER & ~TIM_CCER_CC1E_Msk) | TIM_CCER_CC1E | TIM_CCER_CC1NE;
     TIM1->CR1 = (TIM1->CR1 & ~TIM_CR1_CEN_Msk) | TIM_CR1_URS | TIM_CR1_CEN;
     TIM1->EGR = TIM_EGR_UG;
     NVIC_EnableIRQ(TIM1_UP_IRQn);
