@@ -5,7 +5,6 @@
 
 namespace config{
 
-
 struct PortPins{
     gpio::Pin<gpio::Port::c, 13> led;
 };

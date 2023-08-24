@@ -59,6 +59,13 @@ int main() {
     SystemCoreClockUpdate();
     PortsInit();
 
+    static uint32_t wordDma[6]={config::portPins.led.makeWriteWord(false),
+                                config::portPins.led.makeWriteWord(true),
+                                config::portPins.led.makeWriteWord(false),
+                                config::portPins.led.makeWriteWord(true),
+                                config::portPins.led.makeWriteWord(false),
+                                config::portPins.led.makeWriteWord(true)};
+
     uint32_t lastDmaRxLen = 0;
     uint32_t lastDmaTxLen = 0;
     usb::cdcPayload::applyLineCoding();
