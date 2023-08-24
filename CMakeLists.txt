@@ -32,10 +32,13 @@ find_file(
 	)
 
 include(${CONFIG_CMAKE})
+include(default.cmake)
 
+configure_file(src/linker.ld.in linker.ld)
 add_compile_definitions(STM32F103xB HSE_VALUE=8000000U)
 add_compile_options(-mthumb -fno-pic -ffunction-sections -fdata-sections)
 add_link_options(-Wl,--gc-sections)
+
 if (MCPU)
     add_compile_options(-mcpu=${MCPU})
     add_link_options(-mcpu=${MCPU})
@@ -47,10 +50,7 @@ set (CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -Os")
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -gdwarf-2")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -fno-use-cxa-atexit")
 
-add_link_options(-mthumb -T${STM32_LDSCRIPT} --specs=nosys.specs -Xlinker -Map=firmware.map)
-if(FIRMWARE_ORIGIN)
-add_link_options(-Wl,-section-start=.isr_vector=${FIRMWARE_ORIGIN})
-endif(FIRMWARE_ORIGIN)
+add_link_options(-mthumb -Tlinker.ld --specs=nosys.specs -Xlinker -Map=firmware.map)
 
 add_executable(firmware.elf
     ${STARTUP}

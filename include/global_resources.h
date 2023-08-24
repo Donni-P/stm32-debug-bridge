@@ -3,6 +3,7 @@
 #include <cdc_payload.h>
 #include <fifo.h>
 #include <gpio.h>
+#include <config.h>
 
 
 namespace global {
@@ -68,6 +69,4 @@ static DMA_Channel_TypeDef * const uartDmaTx = UART_DMA_TX;
 static DMA_Channel_TypeDef * const uartDmaRx = UART_DMA_RX;
 
 } // namespace global
-
-#include <config.h>
 

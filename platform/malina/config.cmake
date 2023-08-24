@@ -11,7 +11,10 @@ include_directories(include
     ${PLATFORM_DIR}
 )
 
-set (STM32_LDSCRIPT ${PROJECT_SOURCE_DIR}/src/STM32F103XB_FLASH.ld)
+set (FLASH_SIZE 0x40000)
+set (FLASH_PAGE_SIZE 1024)
+set (RAM_SIZE 49152)
+set (FLASH_OFFSET 0)
 
 add_compile_definitions(
     PLATFORM_HEADER=<stm32f1xx.h>
@@ -37,5 +40,7 @@ add_compile_definitions(
     UART=USART1
     UART_DMA_TX=DMA1_Channel4
     UART_DMA_RX=DMA1_Channel5
+    CLOCK_INIT_HEADER=<clocks/f1_hse8_ahb72.h>
+    COMMANDS_HEADER=<malina-commands.h>
 )
 set (MCPU cortex-m3)

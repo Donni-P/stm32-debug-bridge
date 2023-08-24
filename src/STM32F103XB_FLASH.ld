@@ -187,3 +187,4 @@ SECTIONS
   .afio 0x40010000 (NOLOAD) : { *(.afio) }
   .flash 0x40022000 (NOLOAD) : { *(.flash) }
 }
+

@@ -40,7 +40,7 @@ constexpr std::string_view get(index ind){
     };
     return "\033[0m"sv;
 }
-};
+}
 
 namespace endl{
 enum class index{
@@ -63,11 +63,7 @@ constexpr std::string_view get(index ind){
     }
     return "\r\n"sv;
 }
-};
-
-namespace internal{
-
-};
+}
 
 template <
     typename CE,

@@ -29,8 +29,8 @@ enum class EndpointIndex {
 namespace epSize {
 constexpr std::uint16_t control = 16;
 constexpr std::uint16_t interrupt = 16;
-constexpr std::uint16_t small = 32;
-constexpr std::uint16_t large = 64;
+constexpr std::uint16_t small = 16;
+constexpr std::uint16_t large = 128;
 } // namespace epSize
 
 constexpr std::uint16_t idVendor = VENDOR_ID;
@@ -74,7 +74,7 @@ struct DeviceConfiguration : Configuration {
               dataRxEp(Endpoint::directionOut | static_cast<uint8_t>(edInd),
                        Endpoint::EpType::bulk, epSize::small, 0),
               dataTxEp(Endpoint::directionIn | static_cast<uint8_t>(edInd),
-                       Endpoint::EpType::bulk, epSize::small, 0) {}
+                       Endpoint::EpType::bulk, realUart?epSize::large:epSize::small, 0) {}
     } __attribute__((packed));
 
     SingleAcm uart;

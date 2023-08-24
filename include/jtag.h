@@ -1,5 +1,5 @@
 #pragma once
 
 namespace jtag{
-    void tick(void);
+    void tick(char c);
 }
