@@ -7,6 +7,8 @@
 #include <jtag.h>
 #include <usb.h>
 #include <shell.h>
+uint8_t results[6] = {0};
+int cnt = 0;
 static inline void PortsInit(void) {
 
     using namespace gpio;
@@ -93,7 +95,7 @@ int main() {
     DMA1_Channel2->CMAR = (uint32_t)wordDma;
 
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_TIM1EN_Msk) | RCC_APB2ENR_TIM1EN;
-    TIM1->DIER = (TIM1->DIER & ~TIM_DIER_UIE_Msk) | TIM_DIER_UIE | TIM_DIER_CC1DE;
+    TIM1->DIER = (TIM1->DIER & ~TIM_DIER_UIE_Msk) | TIM_DIER_UIE | TIM_DIER_CC1DE | TIM_DIER_CC1IE;
     TIM1->PSC = 0xf9ff; //72 МГц / 64 кГц = 1125 Гц
     TIM1->ARR = 0x2be8; // 10 секунд
     TIM1->CCR1 = 0x15f4;//50% скважность - 5 секунд
@@ -103,10 +105,10 @@ int main() {
     TIM1->CR1 = (TIM1->CR1 & ~TIM_CR1_CEN_Msk) | TIM_CR1_URS | TIM_CR1_CEN;
     TIM1->EGR = TIM_EGR_UG;
     NVIC_EnableIRQ(TIM1_UP_IRQn);
+    NVIC_EnableIRQ(TIM1_CC_IRQn);
 
     DMA1_Channel2->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_MINC | 
                          DMA_CCR_DIR | DMA_CCR_EN;
-    //NVIC_EnableIRQ(DMA1_Channel2_IRQn);
     config::configInit();
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
@@ -165,5 +167,11 @@ extern "C" void TIM1_UP_IRQHandler(){
     }
     //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
-/*extern "C" void DMA1_Channel2_IRQHandler(){
-}*/
+extern "C" void TIM1_CC_IRQHandler(){
+    if((TIM1->SR & TIM_SR_CC1IF_Msk) != 0){
+        if(config::portPins.led.read())
+            results[cnt] = 1;
+        cnt++;
+        TIM1->SR = TIM1->SR & ~TIM_SR_CC1IF_Msk;
+    }
+}
