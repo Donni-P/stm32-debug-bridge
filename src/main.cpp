@@ -183,4 +183,3 @@ extern "C" void RCC_IRQHandler(){
         while ((RTC->CRL&RTC_CRL_CNF)!=0);
     }
 }
-
