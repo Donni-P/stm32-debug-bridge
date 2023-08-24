@@ -97,15 +97,15 @@ int main() {
     DMA1_Channel3->CPAR = (uint32_t)&config::portPins.led.getGpioPointer()->IDR;
     DMA1_Channel3->CMAR = (uint32_t)results;
 
-    RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_TIM1EN_Msk) | RCC_APB2ENR_TIM1EN;
-    TIM1->DIER = (TIM1->DIER & ~TIM_DIER_UIE_Msk) | TIM_DIER_UIE | TIM_DIER_CC1DE | TIM_DIER_CC2DE;
+    RCC->APB2ENR = RCC->APB2ENR | RCC_APB2ENR_TIM1EN;
+    TIM1->DIER = TIM1->DIER | TIM_DIER_UIE | TIM_DIER_CC1DE | TIM_DIER_CC2DE;
     TIM1->PSC = 0xf9ff; //72 МГц / 64 кГц = 1125 Гц
     TIM1->ARR = 0x2be8; // 10 секунд
     TIM1->CCR1 = 0x15f4;//50% скважность - 5 секунд
     TIM1->CCR2 = 0x15f4;
     TIM1->RCR = 0x5; // 1 минута 
     TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_CC2S_1;
-    TIM1->CR1 = (TIM1->CR1 & ~TIM_CR1_CEN_Msk) | TIM_CR1_URS | TIM_CR1_CEN;
+    TIM1->CR1 = TIM1->CR1 | TIM_CR1_URS | TIM_CR1_CEN;
     TIM1->EGR = TIM_EGR_UG;
     NVIC_EnableIRQ(TIM1_UP_IRQn);
 
