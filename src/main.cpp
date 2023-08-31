@@ -85,6 +85,7 @@ int main() {
     config::configInit();
     usb::init();
     __enable_irq();
+
     RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
     PWR->CR = PWR->CR | PWR_CR_DBP;
     RCC->BDCR = RCC->BDCR | RCC_BDCR_BDRST;
@@ -101,12 +102,6 @@ int main() {
     while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}    
     NVIC_EnableIRQ(RTC_IRQn);
 
-    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}
-    RTC->CRL = RTC->CRL | RTC_CRL_CNF;
-    RTC->CNTH = 0x1;                        //конфигурация CNT половина ALARM
-    RTC->CNTL = 0x387f;
-    RTC->CRL = RTC->CRL & ~RTC_CRL_CNF_Msk;
-    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}  
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
@@ -163,6 +158,12 @@ int main() {
 extern "C" void RTC_IRQHandler(){
     if((RTC->CRL & RTC_CRL_ALRF_Msk) != 0){
         config::portPins.led.write( ! config::portPins.led.read());
+        while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}
+        RTC->CRL = RTC->CRL | RTC_CRL_CNF;
         RTC->CRL = RTC->CRL & ~RTC_CRL_ALRF_Msk;
+        RTC->CNTH = 0x0;
+        RTC->CNTL = 0x0;
+        RTC->CRL = RTC->CRL & ~RTC_CRL_CNF_Msk;
+        while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}  
     }
 }
