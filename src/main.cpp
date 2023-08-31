@@ -10,7 +10,6 @@
 
 #include CLOCK_INIT_HEADER
 #include COMMANDS_HEADER
-uint32_t results[6] = {0};
 static inline void PortsInit(void) {
 
     using namespace gpio;
@@ -59,13 +58,6 @@ int main() {
     SystemCoreClockUpdate();
     PortsInit();
 
-    static uint32_t wordDma[6]={config::portPins.led.makeWriteWord(false),
-                                config::portPins.led.makeWriteWord(true),
-                                config::portPins.led.makeWriteWord(false),
-                                config::portPins.led.makeWriteWord(true),
-                                config::portPins.led.makeWriteWord(false),
-                                config::portPins.led.makeWriteWord(true)};
-
     uint32_t lastDmaRxLen = 0;
     uint32_t lastDmaTxLen = 0;
     usb::cdcPayload::applyLineCoding();
@@ -93,28 +85,20 @@ int main() {
     config::configInit();
     usb::init();
     __enable_irq();
-    DMA1_Channel2->CNDTR = 0x6;
-    DMA1_Channel2->CPAR = (uint32_t)&config::portPins.led.getGpioPointer()->BSRR;
-    DMA1_Channel2->CMAR = (uint32_t)wordDma;
-    DMA1_Channel3->CNDTR = 0x6;
-    DMA1_Channel3->CPAR = (uint32_t)&config::portPins.led.getGpioPointer()->IDR;
-    DMA1_Channel3->CMAR = (uint32_t)results;
-
-    RCC->APB2ENR = RCC->APB2ENR | RCC_APB2ENR_TIM1EN;
-    TIM1->DIER = TIM1->DIER | TIM_DIER_UIE | TIM_DIER_CC1DE | TIM_DIER_CC2DE;
-    TIM1->PSC = 0xf9ff; //72 МГц / 64 кГц = 1125 Гц
-    TIM1->ARR = 0x2be8; // 10 секунд
-    TIM1->CCR1 = 0x15f4;//50% скважность - 5 секунд
-    TIM1->CCR2 = 0x15f4;
-    TIM1->RCR = 0x5; // 1 минута 
-    TIM1->CCMR1 = TIM1->CCMR1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1;
-    TIM1->CR1 = TIM1->CR1 | TIM_CR1_URS | TIM_CR1_CEN;
-    TIM1->EGR = TIM1->EGR | TIM_EGR_UG;
-    NVIC_EnableIRQ(TIM1_UP_IRQn);
-
-    DMA1_Channel2->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_MINC | 
-                         DMA_CCR_DIR | DMA_CCR_EN;
-    DMA1_Channel3->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MSIZE_1 | DMA_CCR_MINC | DMA_CCR_EN;                     
+    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
+    PWR->CR = PWR->CR | PWR_CR_DBP;
+    RCC->BDCR = RCC->BDCR | RCC_BDCR_BDRST;
+    RCC->BDCR = RCC->BDCR & ~RCC_BDCR_BDRST_Msk;
+    RCC->BDCR = RCC->BDCR | RCC_BDCR_RTCSEL_1 | RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
+    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}
+    RTC->CRL = RTC->CRL | RTC_CRL_CNF;
+    RTC->CRH = RTC->CRH | RTC_CRH_ALRIE;
+    RTC->PRLL = 0x1;
+    RTC->ALRH = 0x4;
+    RTC->ALRL = 0xc4b3;
+    RTC->CRL = RTC->CRL & ~RTC_CRL_CNF_Msk;
+    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}    
+    NVIC_EnableIRQ(RTC_IRQn);
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
@@ -168,10 +152,9 @@ int main() {
 
     return 0;
 }
-extern "C" void TIM1_UP_IRQHandler(){
-    if((TIM1->SR & TIM_SR_UIF_Msk) != 0){
-        //config::portPins.led.write( ! config::portPins.led.read());
-        TIM1->SR = TIM1->SR & ~TIM_SR_UIF_Msk;
+extern "C" void RTC_IRQHandler(){
+    if((RTC->CRL & RTC_CRL_ALRF_Msk) != 0){
+        config::portPins.led.write( ! config::portPins.led.read());
+        RTC->CRL = RTC->CRL & ~RTC_CRL_ALRF_Msk;
     }
-    //TIM1->CR1 = TIM1->CR1 & ~TIM_CR1_CEN_Msk;
 }
