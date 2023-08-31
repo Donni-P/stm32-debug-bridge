@@ -89,16 +89,24 @@ int main() {
     PWR->CR = PWR->CR | PWR_CR_DBP;
     RCC->BDCR = RCC->BDCR | RCC_BDCR_BDRST;
     RCC->BDCR = RCC->BDCR & ~RCC_BDCR_BDRST_Msk;
-    RCC->BDCR = RCC->BDCR | RCC_BDCR_RTCSEL_1 | RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
+    RCC->BDCR = RCC->BDCR | RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN | RCC_BDCR_LSEON;
+    while((RCC->BDCR & RCC_BDCR_LSERDY_Msk) == 0){}
     while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}
     RTC->CRL = RTC->CRL | RTC_CRL_CNF;
     RTC->CRH = RTC->CRH | RTC_CRH_ALRIE;
     RTC->PRLL = 0x1;
-    RTC->ALRH = 0x4;
-    RTC->ALRL = 0xc4b3;
+    RTC->ALRH = 0x2;
+    RTC->ALRL = 0x70ff;
     RTC->CRL = RTC->CRL & ~RTC_CRL_CNF_Msk;
     while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}    
     NVIC_EnableIRQ(RTC_IRQn);
+
+    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}
+    RTC->CRL = RTC->CRL | RTC_CRL_CNF;
+    RTC->CNTH = 0x1;                        //конфигурация CNT половина ALARM
+    RTC->CNTL = 0x387f;
+    RTC->CRL = RTC->CRL & ~RTC_CRL_CNF_Msk;
+    while((RTC->CRL & RTC_CRL_RTOFF_Msk) == 0){}  
     while (1) {
         if (usb::cdcPayload::isPendingApply()) {
             usb::cdcPayload::applyLineCoding();
