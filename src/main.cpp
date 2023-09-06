@@ -58,7 +58,6 @@ int main() {
     clock::init();
     SystemCoreClockUpdate();
     PortsInit();
-    deviceShell::tick('\b');
 
     static uint32_t wordDma[6]={config::portPins.led.makeWriteWord(false),
                                 config::portPins.led.makeWriteWord(true),
