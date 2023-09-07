@@ -6,11 +6,14 @@
 #include <gpio.h>
 #include <jtag.h>
 #include <usb.h>
-#include <shell.h>
+#include <device-shell.h>
 
 #include CLOCK_INIT_HEADER
-#include COMMANDS_HEADER
+
+#include <systick-wait.h>
+
 uint32_t results[6] = {0};
+
 static inline void PortsInit(void) {
 
     using namespace gpio;
@@ -78,19 +81,11 @@ int main() {
         global::uartDmaRx->CCR = DMA_CCR_PSIZE_1 | DMA_CCR_MINC | DMA_CCR_PSIZE_1 |
                              DMA_CCR_CIRC | DMA_CCR_EN;
     }
-    const static char prompt[] = "> ";
-    shell::Shell<
-        commands::CommandExecutor,
-        prompt,
-        60,
-        8,
-        shell::color::index::green,
-        false,
-        false,
-        false,
-        16
-    > sh;
+
     config::configInit();
+    usb::cdcPayload::applyLineCoding();
+    deviceShell::tick('\b');
+
     usb::init();
     __enable_irq();
     DMA1_Channel2->CNDTR = 0x6;
@@ -124,6 +119,11 @@ int main() {
             global::uartRx.dmaPushApply((lastDmaRxLen - dmaRxLen) %
                                         global::uartRx.capacity());
             lastDmaRxLen = dmaRxLen;
+            __disable_irq();
+            if ( global::uartRx.size() > global::uartRx.capacity() ){
+                global::uartRx.dmaPopApply(global::uartRx.size() - global::uartRx.capacity());
+            }
+            __enable_irq();
         }
         if (uint32_t dmaTxLen = global::uartDmaTx->CNDTR;
             (lastDmaTxLen - dmaTxLen != 0) || (!global::uartTx.empty())) {
@@ -146,7 +146,7 @@ int main() {
         usb::regenerateTx();
         while( !global::shellTx.empty() )
         {
-            sh.exec(global::shellTx.pop());
+            deviceShell::tick(global::shellTx.pop());
         }
         while ( !global::jtagTx.empty() )
         {

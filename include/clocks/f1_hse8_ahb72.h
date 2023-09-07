@@ -7,7 +7,7 @@ static inline void init(void) {
     uint32_t reservedBitsCr =
         RCC->CR & ~(RCC_CR_PLLRDY_Msk | RCC_CR_PLLON_Msk | RCC_CR_CSSON_Msk |
                     RCC_CR_HSEBYP_Msk | RCC_CR_HSERDY_Msk | RCC_CR_HSEON_Msk |
-                    RCC_CR_HSITRIM_Msk | RCC_CR_HSIRDY_Msk | RCC_CR_HSION_Msk);
+                    RCC_CR_HSIRDY_Msk | RCC_CR_HSION_Msk);
     uint32_t reservedBitsCfgr =
         RCC->CFGR &
         ~(RCC_CFGR_MCO_Msk | RCC_CFGR_USBPRE_Msk | RCC_CFGR_PLLMULL_Msk |
@@ -27,14 +27,27 @@ static inline void init(void) {
     while ((RCC->CR & RCC_CR_PLLRDY_Msk) != 0)
         ;
 
-    RCC->CFGR = reservedBitsCfgr | RCC_CFGR_PLLMULL9 | RCC_CFGR_PLLSRC |
-                RCC_CFGR_ADCPRE_DIV6 | RCC_CFGR_PPRE2_DIV1 |
-                RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_SW_HSI;
 
-    FLASH->ACR = (FLASH->ACR & ~(FLASH_ACR_LATENCY_Msk | FLASH_ACR_PRFTBS_Msk | FLASH_ACR_PRFTBE_Msk | FLASH_ACR_HLFCYA_Msk)) | FLASH_ACR_PRFTBE | 2;
+    SysTick->CTRL = 0x00;
+    SysTick->LOAD = (HSI_VALUE/8)-1;
+    SysTick->VAL = 0x00;
+    SysTick->CTRL = SysTick_CTRL_ENABLE_Msk;
 
-    while ((RCC->CR & RCC_CR_HSERDY_Msk) == 0)
+    while (((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0)&&((RCC->CR & RCC_CR_HSERDY_Msk) == 0))
         ;
+    SysTick->CTRL = 0x00;
+
+    if ( (RCC->CR & RCC_CR_HSERDY_Msk) != 0 ){
+        FLASH->ACR = FLASH_ACR_PRFTBE | (2<<FLASH_ACR_LATENCY_Pos);
+        RCC->CFGR = reservedBitsCfgr | RCC_CFGR_PLLMULL9 | RCC_CFGR_PLLSRC |
+                    RCC_CFGR_ADCPRE_DIV6 | RCC_CFGR_PPRE2_DIV1 |
+                    RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_SW_HSI;
+    }else{
+        FLASH->ACR = FLASH_ACR_PRFTBE | (2<<FLASH_ACR_LATENCY_Pos);
+        RCC->CFGR = reservedBitsCfgr | RCC_CFGR_USBPRE | RCC_CFGR_PLLMULL12 |
+                    RCC_CFGR_ADCPRE_DIV6 | RCC_CFGR_PPRE2_DIV1 |
+                    RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_SW_HSI;
+    }
 
     RCC->CR = reservedBitsCr | RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_PLLON;
     while ((RCC->CR & RCC_CR_PLLRDY_Msk) == 0)

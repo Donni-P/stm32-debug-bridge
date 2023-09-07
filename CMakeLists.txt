@@ -60,6 +60,7 @@ add_executable(firmware.elf
     src/uart.cpp
     src/jtag.cpp
     src/global_resources.cpp
+    src/shell.cpp
 )
 
 add_library(gpio STATIC

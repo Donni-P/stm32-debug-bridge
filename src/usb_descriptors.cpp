@@ -54,21 +54,21 @@ const io::Endpoint endpoints[static_cast<std::size_t>(EndpointIndex::last)] = {
     {Endpoint::EpType::bulk,
      static_cast<std::uint8_t>(deviceConfig.uart.dataRxEp.wMaxPacketSize),
      static_cast<std::uint8_t>(deviceConfig.uart.dataTxEp.wMaxPacketSize),
-     uartRxHandler, nullptr, nullptr},
+     uartRxHandler, uartTxHandler, nullptr},
     {Endpoint::EpType::interrupt, 0,
      static_cast<std::uint8_t>(deviceConfig.shell.commEp.wMaxPacketSize),
      nullptr, nullptr, nullptr},
     {Endpoint::EpType::bulk,
      static_cast<std::uint8_t>(deviceConfig.shell.dataRxEp.wMaxPacketSize),
      static_cast<std::uint8_t>(deviceConfig.shell.dataTxEp.wMaxPacketSize),
-     shellRxHandler, nullptr, nullptr},
+     shellRxHandler, shellTxHandler, nullptr},
     {Endpoint::EpType::interrupt, 0,
      static_cast<std::uint8_t>(deviceConfig.jtag.commEp.wMaxPacketSize),
      nullptr, nullptr, nullptr},
     {Endpoint::EpType::bulk,
      static_cast<std::uint8_t>(deviceConfig.jtag.dataRxEp.wMaxPacketSize),
      static_cast<std::uint8_t>(deviceConfig.jtag.dataTxEp.wMaxPacketSize),
-     jtagRxHandler, nullptr, nullptr}};
+     jtagRxHandler, jtagTxHandler, nullptr}};
 
 constexpr uint32_t buff_size = []{uint32_t result=0; for (auto i:endpoints){result += i.rxSize+i.txSize;}return result;}();
 

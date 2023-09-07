@@ -42,5 +42,6 @@ add_compile_definitions(
     UART_DMA_RX=DMA1_Channel5
     CLOCK_INIT_HEADER=<clocks/f1_hse8_ahb72.h>
     COMMANDS_HEADER=<empty-commads.h>
+    HSI_VALUE=8000000u
 )
 set (MCPU cortex-m3)

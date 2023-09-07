@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gpio.h>
 #include <static_map.h>
 
@@ -27,6 +29,7 @@ static inline void PortsInit(void) {
 static inline void Panic(void){
     ledOn();
 }
+
 static inline void configInit(void){}
 
 } // namespace global

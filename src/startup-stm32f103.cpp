@@ -319,7 +319,7 @@ const uint8_t APBPrescTable[8U] = {0, 0, 0, 0, 1, 2, 3, 4};
 void SystemCoreClockUpdate(void) {
     uint32_t tmp = 0U, pllMull = 0U, pllSource = 0U;
 
-    constexpr std::uint32_t hsiValue = 8000000U;
+    constexpr std::uint32_t hsiValue = HSI_VALUE;
     constexpr std::uint32_t hseValue = HSE_VALUE;
 
 #if defined(STM32F105xC) || defined(STM32F107xC)

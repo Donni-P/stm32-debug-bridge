@@ -16,7 +16,8 @@ public:
         elock,
         reset,
         help,
-        save
+        save,
+        R
     };
     struct flags{
         static constexpr uint16_t fan    = 0x0001;
@@ -41,14 +42,13 @@ public:
     }
     static void readPorts(void){
         using namespace config;
+        powerOff();
         uint16_t pinCfg = global::flashconfig[0];
         if ( (pinCfg&flags::clear) != 0 ){
-            portPins.pwrOn.write(false);
             portPins.hostMode.write(false);
             portPins.edclLock.write(false);
             portPins.fanPwm.write(true);
             portPins.fanEn.write(true);
-            portPins.nRst.write(false);
         }else{
             if ( pinCfg & flags::fan ){
                 portPins.fanPwm.write(true);
@@ -68,15 +68,17 @@ public:
                 portPins.edclLock.write(false);
             }
             if ( pinCfg & flags::pwr ){
-                portPins.pwrOn.write(true);
+                powerOn();
                 if ( pinCfg & flags::rst ){
-                    for (uint32_t i = 0xfffffu; i > 0; --i)
-                        __NOP();
+                    SysTick->CTRL = 0x00;
+                    SysTick->LOAD = (SystemCoreClock/8/2)-1;
+                    SysTick->VAL = 0x00;
+                    SysTick->CTRL = SysTick_CTRL_ENABLE_Msk;
+                    while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0)
+                        ;
+                    SysTick->CTRL = 0x00;
                     portPins.nRst.write(true);
                 }
-            }else{
-                portPins.pwrOn.write(false);
-                portPins.nRst.write(false);
             }
         }
     }
@@ -89,7 +91,7 @@ public:
         static constexpr string_view error = "unknown command : "sv;
         static constexpr string_view errorParam = "invalid param: "sv;
         static constexpr string_view setTo = " set to: "sv;
-        static constexpr string_view list = "LIST FAN POWER HOST ELOCK RESET SAVE"sv;
+        static constexpr string_view list = "LIST FAN POWER HOST ELOCK RESET SAVE R"sv;
         static constexpr string_view help =
             "FAN <0|1> - turn fan on/off\r\n"
             "POWER <0|1> - turn power on/off\r\n"
@@ -97,8 +99,9 @@ public:
             "ELOCK <0|1> - turn edcl on/off\r\n"
             "RESET <0|1> - turn nRST on/off\r\n"
             "SAVE - save control pins states\r\n"
+            "R - full power cycle\r\n"
             ""sv;
-        static constexpr staticMap::StaticMap<string_view, CommandType, 9, 4, hasher> commands(
+        static constexpr staticMap::StaticMap<string_view, CommandType, 10, 4, hasher> commands(
             {
                 {"LIST"sv,CommandType::list},
                 {"FAN"sv,CommandType::fan},
@@ -108,7 +111,8 @@ public:
                 {"RESET"sv,CommandType::reset},
                 {"HELP"sv,CommandType::help},
                 {"help"sv,CommandType::help},
-                {"SAVE"sv,CommandType::save}
+                {"SAVE"sv,CommandType::save},
+                {"R"sv,CommandType::R}
             }
         );
         CommandType c;
@@ -173,9 +177,10 @@ public:
                     push(i);
                 for (uint8_t i:argv[1])
                     push(i);
-                portPins.pwrOn.write(x);
-                if ( !x )
-                    portPins.nRst.write(false);
+                if ( x )
+                    powerOn();
+                else
+                    powerOff();
             }
             break;
         case CommandType::host:
@@ -262,10 +267,99 @@ public:
                 }
             }
             break;
+        case CommandType::R:
+            {
+                powerOff();
+                SysTick->CTRL = 0x00;
+                SysTick->LOAD = (SystemCoreClock/8/2)-1;
+                SysTick->VAL = 0x00;
+                SysTick->CTRL = SysTick_CTRL_ENABLE_Msk;
+                while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0)
+                    ;
+                SysTick->CTRL = 0x00;
+                powerOn();
+                SysTick->CTRL = 0x00;
+                SysTick->LOAD = (SystemCoreClock/8/2)-1;
+                SysTick->VAL = 0x00;
+                SysTick->CTRL = SysTick_CTRL_ENABLE_Msk;
+                while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0)
+                    ;
+                SysTick->CTRL = 0x00;
+                portPins.nRst.write(true);
+            }
+            break;
         }
         push('\r');
         push('\n');
     }
 private:
+    static void powerOn (){
+        using namespace gpio;
+        using namespace config;
+        portPins.pwrOn.write(true);
+        portPins.nRst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        portPins.pwrOn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.hostMode.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.edclLock.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.fanPwm.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.fanEn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        portPins.jtagTrst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.jtagHalt.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        global::jtagOut.configOutput<0>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+        global::jtagOut.configOutput<1>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+        global::jtagOut.configOutput<2>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+
+        global::uartPins.configOutput<1>(OutputType::alt_pp,
+                                         OutputSpeed::_10mhz); // TX
+    }
+    static void powerOff (){
+        using namespace gpio;
+        using namespace config;
+        portPins.nRst.write(false);
+        portPins.pwrOn.write(false);
+
+        portPins.pwrOn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.nRst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        portPins.hostMode.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.edclLock.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.fanPwm.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.fanEn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        portPins.jtagTrst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.jtagHalt.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+
+        global::jtagOut.configOutput<0>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+        global::jtagOut.configOutput<1>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+        global::jtagOut.configOutput<2>(OutputType::gen_pp,
+                                        OutputSpeed::_10mhz);
+
+        global::uartPins.configOutput<1>(OutputType::alt_pp,
+                                         OutputSpeed::_10mhz); // TX
+        /*
+        portPins.pwrOn.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.nRst.configOutput(OutputType::gen_pp, OutputSpeed::_2mhz);
+        portPins.hostMode.configInput(InputType::floating);
+        portPins.edclLock.configInput(InputType::floating);
+        portPins.jtagTrst.configInput(InputType::floating);
+        portPins.jtagHalt.configInput(InputType::floating);
+        portPins.fanPwm.configInput(InputType::floating);
+        portPins.fanEn.configInput(InputType::floating);
+
+        global::jtagOut.configInput<0>(InputType::floating);
+        global::jtagOut.configInput<1>(InputType::floating);
+        global::jtagOut.configInput<2>(InputType::floating);
+
+        global::uartPins.configInput<1>(InputType::floating);
+        */
+    }
 };
 }
