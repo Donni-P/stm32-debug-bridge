@@ -78,6 +78,13 @@ int main() {
 
     usb::init();
     __enable_irq();
+
+    RCC->CSR = RCC_CSR_LSION;
+    PWR->CR = PWR->CR | PWR_CR_DBP;
+    NVIC_EnableIRQ(RCC_IRQn);
+    RCC->CIR = RCC_CIR_LSIRDYIE | RCC_CIR_LSERDYIE;
+    RCC->BDCR = RCC_BDCR_RTCEN | RCC_BDCR_LSEON;
+    RCC->CIR = RCC_CIR_LSIRDYIE;
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
     //I2C1
     GPIOB->CRL = GPIOB->CRL | (0xff << 24);//8 единиц в старших битах
