@@ -78,6 +78,10 @@ int main() {
 
     usb::init();
     __enable_irq();
+    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN | RCC_APB1ENR_I2C2EN;
+    I2C1->CR2 = I2C1->CR2 | I2C_CR2_FREQ_1;
+    
+    I2C1->CR1 = I2C1->CR1 | I2C_CR1_PE;
 
     RCC->CSR = RCC_CSR_LSION;
     PWR->CR = PWR->CR | PWR_CR_DBP;
