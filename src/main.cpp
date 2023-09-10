@@ -78,27 +78,27 @@ int main() {
 
     usb::init();
     __enable_irq();
-    //configure 1st i2c
-    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN | RCC_APB1ENR_I2C2EN;
-    I2C1->CR2 = I2C1->CR2 | I2C_CR2_FREQ_1;
-    I2C1->CCR = 0x4;
-    I2C1->TRISE = 0x25;
+    RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
+    GPIOB->CRL = GPIOB->CRL | (0xff << 24);//8 единиц в старших битах
+    GPIOB->ODR = GPIOB->ODR | (0x3 << 6);// 11 в 7 и 6 битах ODR
+    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN;
+    I2C1->CR1 = I2C1->CR1 | I2C_CR1_SWRST;
+    I2C1->CR1 = I2C1->CR1 & ~I2C_CR1_SWRST_Msk;
+    I2C1->CR2 = 0x24; // 36 MHz
+    I2C1->CCR = 0xb4; // 100 KHz
+    I2C1->TRISE = 0x25; // 37
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_ACK | I2C_CR1_PE;
-    //configure 2nd i2c
-    I2C2->CR2 = I2C2->CR2 | I2C_CR2_FREQ_1;
-    I2C2->CCR = 0x4;
-    I2C2->TRISE = 0x25;
-    I2C2->CR1 = I2C2->CR1 | I2C_CR1_ACK | I2C_CR1_PE;
     //transmit
+
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_START;
-    I2C1->DR = 0x40005810; // Установка адреса slave-устройства (например, 0xA0)
-    while (!(I2C1->SR1 & I2C_SR1_ADDR_Msk)); // Ожидание завершения передачи адреса
-    volatile uint32_t tmp = I2C1->SR2; // Очистка флага ADDR путем чтения регистра SR2
-    I2C1->DR = 0x44; // Передача первого байта (например, 0x12)
-    while (!(I2C1->SR1 & I2C_SR1_TXE_Msk)); // Ожидание окончания передачи первого байта
-    I2C1->DR = 0x55; // Передача второго байта (например, 0x34)
-    while (!(I2C1->SR1 & I2C_SR1_TXE_Msk)); 
-    I2C1->CR1 |= I2C_CR1_STOP;
+    while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
+    I2C1->SR1 = I2C1->SR1 & ~I2C_SR1_SB_Msk;
+    I2C1->DR = (0x27 << 1); 
+    while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
+    I2C1->SR2 = I2C1->SR2 & ~I2C_SR1_ADDR_Msk;
+    I2C1->DR = 0x0c; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
 
     RCC->CSR = RCC_CSR_LSION;
     PWR->CR = PWR->CR | PWR_CR_DBP;
