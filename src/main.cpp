@@ -79,25 +79,80 @@ int main() {
     usb::init();
     __enable_irq();
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
+    //I2C1
     GPIOB->CRL = GPIOB->CRL | (0xff << 24);//8 единиц в старших битах
     GPIOB->ODR = GPIOB->ODR | (0x3 << 6);// 11 в 7 и 6 битах ODR
-    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN;
+    //I2C2
+    GPIOB->CRH = GPIOB->CRH | (0xff << 8);//8 единиц в cnf & mode 10/11
+    GPIOB->ODR = GPIOB->ODR | (0x3 << 10);// 11 в 7 и 6 битах ODR
+    //I2C1
+    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN | RCC_APB1ENR_I2C2EN;
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_SWRST;
     I2C1->CR1 = I2C1->CR1 & ~I2C_CR1_SWRST_Msk;
+    //I2C1->OAR1 = (0x11 << 1);
     I2C1->CR2 = 0x24; // 36 MHz
     I2C1->CCR = 0xb4; // 100 KHz
     I2C1->TRISE = 0x25; // 37
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_ACK | I2C_CR1_PE;
+    //I2C2
+    I2C2->CR1 = I2C2->CR1 | I2C_CR1_SWRST;
+    I2C2->CR1 = I2C2->CR1 & ~I2C_CR1_SWRST_Msk;
+    I2C2->OAR1 = (0x12 << 1);
+    I2C2->CR2 = 0x24; // 36 MHz
+    I2C2->CCR = 0xb4; // 100 KHz
+    I2C2->TRISE = 0x25; // 37
+    I2C2->CR1 = I2C2->CR1 | I2C_CR1_ACK | I2C_CR1_PE;
     //transmit
 
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_START;
     while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
     I2C1->SR1 = I2C1->SR1 & ~I2C_SR1_SB_Msk;
-    I2C1->DR = (0x27 << 1); 
+    I2C1->DR = (0x12 << 1); 
     while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C1->SR2 = I2C1->SR2 & ~I2C_SR1_ADDR_Msk;
-    I2C1->DR = 0x0c; 
+    I2C1->SR2 = I2C1->SR2 & ~I2C_SR1_ADDR_Msk; 
+
+    I2C1->DR = 0x38; 
     while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x11; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+
+/*
+    I2C1->DR = 0x38; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x3c; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x8;                              //func set
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0xc; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+
+    I2C1->DR = 0x8; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0xc; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){} //display en
+    I2C1->DR = 0xf8; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0xfc; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+
+    I2C1->DR = 0x8; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0xc; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){} //clear
+    I2C1->DR = 0x18; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x1c; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+
+    I2C1->DR = 0x39; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x3d; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x19; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    I2C1->DR = 0x1d; 
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+*/
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
 
     RCC->CSR = RCC_CSR_LSION;
