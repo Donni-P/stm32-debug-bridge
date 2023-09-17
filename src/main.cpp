@@ -97,8 +97,8 @@ int main() {
     //I2C2
     I2C2->CR1 = I2C2->CR1 | I2C_CR1_SWRST;
     I2C2->CR1 = I2C2->CR1 & ~I2C_CR1_SWRST_Msk;
-    I2C2->OAR1 = (0x12 << 1);
-    I2C2->OAR2 = (0x30 << 1) | 1;
+    I2C2->OAR1 = (0x33 << 1);
+    I2C2->OAR2 = (0x42 << 1) | 1;
     I2C2->CR2 = 0x24; // 36 MHz
     I2C2->CCR = 0xb4; // 100 KHz
     I2C2->TRISE = 0x25; // 37
@@ -107,22 +107,37 @@ int main() {
     //packet 1
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_START;
     while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
-    I2C1->SR1 = I2C1->SR1 & ~I2C_SR1_SB_Msk;
-    I2C1->DR = (0x12 << 1); 
+    I2C1->SR1 = I2C1->SR1;//read
+    I2C1->DR = (0x33 << 1); 
     while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C1->SR2 = I2C1->SR2 & ~I2C_SR1_ADDR_Msk; 
+    I2C1->SR1 = I2C1->SR1; //read
+    I2C1->SR2 = I2C1->SR2; //read
+    while ((I2C2->SR1 & I2C_SR1_ADDR_Msk) == 0){}
+    I2C2->SR1 = I2C2->SR1; //read
+    I2C2->SR2 = I2C2->SR2; //read
     I2C1->DR = 0x38; 
     while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    while ((I2C2->SR1 & I2C_SR1_RXNE_Msk) == 0){}
+    I2C2->DR = I2C2->DR;//read
     I2C1->DR = 0x11; 
     while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
+    while ((I2C2->SR1 & I2C_SR1_RXNE_Msk) == 0){}
+    I2C2->DR = I2C2->DR;//read
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
+    while((I2C2->SR1 & I2C_SR1_STOPF_Msk) == 0){}
+    I2C2->SR1 = I2C2->SR1; //read
+    I2C2->CR1 = I2C2->CR1; //write
     //packet 2
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_START;
     while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
-    I2C1->SR1 = I2C1->SR1 & ~I2C_SR1_SB_Msk;
-    I2C1->DR = (0x30 << 1); 
+    I2C1->SR1 = I2C1->SR1;//read
+    I2C1->DR = (0x42 << 1); 
     while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C1->SR2 = I2C1->SR2 & ~I2C_SR1_ADDR_Msk; 
+    I2C1->SR1 = I2C1->SR1; //read
+    I2C1->SR2 = I2C1->SR2; //read
+    while ((I2C2->SR1 & I2C_SR1_ADDR_Msk) == 0){}
+    I2C2->SR1 = I2C2->SR1; //read
+    I2C2->SR2 = I2C2->SR2; //read
     I2C1->DR = 0x24; 
     while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
     I2C1->DR = 0x15; 
