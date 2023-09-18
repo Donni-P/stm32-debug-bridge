@@ -79,12 +79,6 @@ int main() {
     usb::init();
     __enable_irq();
 
-    RCC->CSR = RCC_CSR_LSION;
-    PWR->CR = PWR->CR | PWR_CR_DBP;
-    NVIC_EnableIRQ(RCC_IRQn);
-    RCC->CIR = RCC_CIR_LSIRDYIE | RCC_CIR_LSERDYIE;
-    RCC->BDCR = RCC_BDCR_RTCEN | RCC_BDCR_LSEON;
-    RCC->CIR = RCC_CIR_LSIRDYIE;
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
     //I2C1
     GPIOB->CRL = GPIOB->CRL | (0xff << 24);//8 единиц в старших битах
@@ -134,60 +128,6 @@ int main() {
     while((I2C2->SR1 & I2C_SR1_STOPF_Msk) == 0){}
     I2C2->SR1 = I2C2->SR1; //read
     I2C2->CR1 = I2C2->CR1; //write
-    //packet 2
-    I2C1->CR1 = I2C1->CR1 | I2C_CR1_START;
-    while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
-    I2C1->SR1 = I2C1->SR1;//read
-    I2C1->DR = (0x42 << 1); 
-    while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C1->SR1 = I2C1->SR1; //read
-    I2C1->SR2 = I2C1->SR2; //read
-    while ((I2C2->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C2->SR1 = I2C2->SR1; //read
-    I2C2->SR2 = I2C2->SR2; //read
-    I2C1->DR = 0x24; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x15; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
-
-/*
-    I2C1->DR = 0x38; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x3c; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x8;                              //func set
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0xc; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-
-    I2C1->DR = 0x8; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0xc; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){} //display en
-    I2C1->DR = 0xf8; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0xfc; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-
-    I2C1->DR = 0x8; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0xc; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){} //clear
-    I2C1->DR = 0x18; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x1c; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-
-    I2C1->DR = 0x39; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x3d; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x19; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    I2C1->DR = 0x1d; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-*/
 
     RCC->CSR = RCC_CSR_LSION;
     PWR->CR = PWR->CR | PWR_CR_DBP;
