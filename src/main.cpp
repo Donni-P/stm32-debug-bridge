@@ -242,33 +242,11 @@ int main() {
     RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN | RCC_APB1ENR_I2C2EN;
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
     //I2C1
-    GPIOB->CRL = (GPIOB->CRL & ~(0xff << 24)) | (0x77 << 24);//general open-drain
-    GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 6)) | (0x3 << 6);// 11 в 7 и 6 битах ODR
-    while((GPIOB->IDR & (0x3 << 6)) == 0){}
-    GPIOB->ODR = GPIOB->ODR & ~(0x1 << 6);
-    while((GPIOB->IDR & (0x1 << 6)) != 0){}
-    GPIOB->ODR = GPIOB->ODR | (0x1 << 6);
-    while((GPIOB->IDR & (0x1 << 6)) == 0){}
-    GPIOB->ODR = GPIOB->ODR & ~(0x1 << 7);
-    while((GPIOB->IDR & (0x1 << 7)) != 0){}
-    GPIOB->ODR = GPIOB->ODR | (0x1 << 7);
-    while((GPIOB->IDR & (0x1 << 7)) == 0){}
-    //I2C2
-    GPIOB->CRH = (GPIOB->CRH & ~(0xff << 8)) | (0x77 << 8);//general open-drain
-    GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 10)) | (0x3 << 10);// 11 в 7 и 6 битах ODR
-    while((GPIOB->IDR & (0x3 << 10)) == 0){}
-    GPIOB->ODR = GPIOB->ODR & ~(0x1 << 10);
-    while((GPIOB->IDR & (0x1 << 10)) != 0){}
-    GPIOB->ODR = GPIOB->ODR | (0x1 << 10);
-    while((GPIOB->IDR & (0x1 << 10)) == 0){}
-    GPIOB->ODR = GPIOB->ODR & ~(0x1 << 11);
-    while((GPIOB->IDR & (0x1 << 11)) != 0){}
-    GPIOB->ODR = GPIOB->ODR | (0x1 << 11);
-    while((GPIOB->IDR & (0x1 << 11)) == 0){}
-    //I2C1
     GPIOB->CRL = (GPIOB->CRL & ~(0xff << 24)) | (0xff << 24);//alternate open-drain
+    GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 6)) | (0x3 << 6);// 11 в 7 и 6 битах ODR
     //I2C2
     GPIOB->CRH = (GPIOB->CRH & ~(0xff << 8)) | (0xff << 8);//alternate open-drain
+    GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 10)) | (0x3 << 10);// 11 в 7 и 6 битах ODR
     //I2C1
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_SWRST;
     while((I2C1->SR2 & I2C_SR2_BUSY_Msk) != 0){}
@@ -294,24 +272,23 @@ int main() {
     while((I2C1->SR1 & I2C_SR1_SB_Msk) == 0){}
     I2C1->SR1 = I2C1->SR1;//read
     I2C1->DR = (0x33 << 1); 
-    while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){}
+    while ((I2C1->SR1 & I2C_SR1_ADDR_Msk) == 0){
+        x.check();
+    }
     I2C1->SR1 = I2C1->SR1; //read
     I2C1->SR2 = I2C1->SR2; //read
-    while ((I2C2->SR1 & I2C_SR1_ADDR_Msk) == 0){}
-    I2C2->SR1 = I2C2->SR1; //read
-    I2C2->SR2 = I2C2->SR2; //read
     I2C1->DR = 0x38; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    while ((I2C2->SR1 & I2C_SR1_RXNE_Msk) == 0){}
-    I2C2->DR = I2C2->DR;//read
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){
+        x.check();
+    }
     I2C1->DR = 0x11; 
-    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){}
-    while ((I2C2->SR1 & I2C_SR1_RXNE_Msk) == 0){}
-    I2C2->DR = I2C2->DR;//read
+    while ((I2C1->SR1 & I2C_SR1_TXE_Msk) == 0){
+        x.check();
+    }
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
-    while((I2C2->SR1 & I2C_SR1_STOPF_Msk) == 0){}
-    I2C2->SR1 = I2C2->SR1; //read
-    I2C2->CR1 = I2C2->CR1; //write
+    while((I2C2->SR1 & I2C_SR1_STOPF_Msk) == 0){
+        x.check();
+    }
 
     RCC->CSR = RCC_CSR_LSION;
     PWR->CR = PWR->CR | PWR_CR_DBP;
