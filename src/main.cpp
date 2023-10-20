@@ -218,7 +218,7 @@ int main() {
     SystemCoreClockUpdate();
     PortsInit();
 
-    SlaveI2C<uint32_t, 4, Hal<uint32_t,4>,Hal<uint32_t,4>> x(I2C2);
+    SlaveI2C<uint32_t, 4, Hal<uint32_t,4>,Hal<uint32_t,4>> x(I2C1);
 
     uint32_t lastDmaRxLen = 0;
     uint32_t lastDmaTxLen = 0;
@@ -239,24 +239,26 @@ int main() {
 
     usb::init();
     __enable_irq();
-    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN | RCC_APB1ENR_I2C2EN;
+    RCC->APB1ENR = RCC->APB1ENR | RCC_APB1ENR_I2C1EN;// | RCC_APB1ENR_I2C2EN;
     RCC->APB2ENR = (RCC->APB2ENR & ~RCC_APB2ENR_IOPBEN_Msk) | RCC_APB2ENR_IOPBEN;
     //I2C1
     GPIOB->CRL = (GPIOB->CRL & ~(0xff << 24)) | (0xff << 24);//alternate open-drain
     GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 6)) | (0x3 << 6);// 11 в 7 и 6 битах ODR
-    //I2C2
+    /*I2C2
     GPIOB->CRH = (GPIOB->CRH & ~(0xff << 8)) | (0xff << 8);//alternate open-drain
     GPIOB->ODR = (GPIOB->ODR & ~(0x3 << 10)) | (0x3 << 10);// 11 в 7 и 6 битах ODR
+    */
     //I2C1
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_SWRST;
     while((I2C1->SR2 & I2C_SR2_BUSY_Msk) != 0){}
     I2C1->CR1 = I2C1->CR1 & ~I2C_CR1_SWRST_Msk;
-    //I2C1->OAR1 = (0x11 << 1);
+    I2C1->OAR1 = (0x33 << 1);
+    I2C1->OAR2 = (0x42 << 1) | 1;
     I2C1->CR2 = 0x24; // 36 MHz
     I2C1->CCR = 0xb4; // 100 KHz
     I2C1->TRISE = 0x25; // 37
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_ACK | I2C_CR1_PE;
-    //I2C2
+    /*I2C2
     I2C2->CR1 = I2C2->CR1 | I2C_CR1_SWRST;
     while((I2C2->SR2 & I2C_SR2_BUSY_Msk) != 0){}
     I2C2->CR1 = I2C2->CR1 & ~I2C_CR1_SWRST_Msk;
@@ -288,7 +290,7 @@ int main() {
     I2C1->CR1 = I2C1->CR1 | I2C_CR1_STOP;
     while((I2C2->SR1 & I2C_SR1_STOPF_Msk) == 0){
         x.check();
-    }
+    }*/
 
     RCC->CSR = RCC_CSR_LSION;
     PWR->CR = PWR->CR | PWR_CR_DBP;
@@ -328,7 +330,7 @@ int main() {
                 lastDmaTxLen = dmaTxLen;
             }
         }
-
+        x.check();
         usb::regenerateTx();
         while( !global::shellTx.empty() )
         {
